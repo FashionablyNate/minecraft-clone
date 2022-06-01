@@ -594,6 +594,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "mc_clone"
+version = "0.1.0"
+dependencies = [
+ "cfg-if 1.0.0",
+ "console_error_panic_hook",
+ "console_log",
+ "env_logger",
+ "log",
+ "pollster",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1043,23 +1060,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "tutorial1-window"
-version = "0.1.0"
-dependencies = [
- "cfg-if 1.0.0",
- "console_error_panic_hook",
- "console_log",
- "env_logger",
- "log",
- "pollster",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "wgpu",
- "winit",
 ]
 
 [[package]]

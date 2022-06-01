@@ -1,5 +1,6 @@
-use tutorial1_window::run;
+use mc_clone::run;
 
 fn main() {
-    run();
+    // awaits future before running
+    pollster::block_on(run());
 }

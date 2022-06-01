@@ -1,16 +1,12 @@
 [package]
-name = "tutorial1-window"
+name = "mc_clone"
 version = "0.1.0"
-authors = ["Ben Hansen <bhbenjaminhansen@gmail.com>"]
+authors = ["Nathan Spelts <nate@nathanspelts.com>"]
 edition = "2018"
 resolver = "2"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-
-[[bin]]
-name = "tutorial1-window"
-path = "src/main.rs"
 
 [dependencies]
 cfg-if = "1"
@@ -31,3 +27,7 @@ web-sys = { version = "0.3.53", features = [
     "Window",
     "Element",
 ]}
+
+[[bin]]
+name = "mc_clone"
+path = "src/main.rs"
