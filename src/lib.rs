@@ -14,6 +14,7 @@ struct State {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     clear_color: wgpu::Color,
+    render_pipeline: wgpu::RenderPipeline,
 }
 
 impl State {
@@ -96,6 +97,132 @@ impl State {
             a: 1.0,
         };
 
+        // takes in wgsl source code and creates a shader module
+        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            
+            // debug label for the shader module
+            label: Some("Shader"),
+
+            // source code for the shader
+            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+        });
+
+        // creates a render pipeline layout
+        let render_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+
+                // label of the pipeline layout for debugging indentification
+                label: Some("Render Pipeline Layout"),
+
+                // a handle to the GPU-side layout of a binding group
+                bind_group_layouts: &[],
+
+                // used to define how much space to allocate for push constants
+                // we send to the gpu
+                push_constant_ranges: &[],
+            });
+
+        // create the render pipeline
+        let render_pipeline =
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+
+                // label of the render pipeline for debugging indentification
+                label: Some("Render Pipeline"),
+
+                // pass in the layout created above
+                layout: Some(&render_pipeline_layout),
+
+                // pass in the shader module and it's entry point for the vertex
+                // shader
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+
+                    // here we can specify what type of vertices we pass to the
+                    // vertex shader
+                    buffers: &[],
+                },
+
+                // pass in the shader module and it's entry point for the fragment
+                // shader, it's technically optional so we wrap it in Some()
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+
+                    // describes the color state of the pipeline
+                    targets: &[wgpu::ColorTargetState {
+
+                        // specify the texture format of the image this pipeline
+                        // will render to, must match the format in the command
+                        // encoder's begin_render_pass
+                        format: config.format,
+
+                        // the blending used for the pipeline, we specify that
+                        // old pixel data should be replaced with new
+                        blend: Some(wgpu::BlendState::REPLACE),
+
+                        // mask which disables/enables writes to different
+                        // color/alpha channels
+                        write_mask: wgpu::ColorWrites::ALL,
+                    }],
+                }),
+                primitive: wgpu::PrimitiveState {
+
+                    // Primitive type that the input mesh is composed of, here
+                    // TriangleList is specified which means each group of three
+                    // vertices corresponds to three vertices of a triangle
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+
+                    // required for strip topologies, specifies how indices are
+                    // formatted
+                    strip_index_format: None,
+
+                    // the face to consider the front when culling and stencilling,
+                    // ccw means triangles with vertices in the counter clockwise
+                    // order are considered the front face. This is the default
+                    // in right-handed coordinate space
+                    front_face: wgpu::FrontFace::Ccw,
+
+                    // the face culling mode, either front or back. Those facing
+                    // backwards from the user are discarded
+                    cull_mode: Some(wgpu::Face::Back),
+
+                    // describes how polygons are rasterized, either fill, line
+                    // or point
+                    // setting this to anything but fill requires
+                    // Features::NON_FILL_POLYGON_MODE
+                    polygon_mode: wgpu::PolygonMode::Fill,
+
+                    // Requires Features::DEPTH_CLIP_CONTROL
+                    unclipped_depth: false,
+
+                    // Requires Features::CONSERVATIVE_RASTERIZATION
+                    conservative: false,
+                },
+
+                // the effect of draw calls on the depth and stencil aspects of
+                // the output target
+                depth_stencil: None,
+
+                multisample: wgpu::MultisampleState {
+                    // # of samples calculated per pixel
+                    count: 1,
+
+                    // bitmask that restricts the samples of a pixel modified
+                    // by this pipeline, !0 enables all samples
+                    mask: !0,
+
+                    // produces a mask based on alpha values and ANDs it with the
+                    // sample mask and primitive coverage to affect the set of
+                    // samples affected by a primitive
+                    alpha_to_coverage_enabled: false,
+                },
+
+                // if using a multi-view render pass this indicates the number
+                // of array layers the attachments will have
+                multiview: None,
+            });
+
         // load all the above values into the surface's fields
         Self {
             surface,
@@ -104,6 +231,7 @@ impl State {
             config,
             size,
             clear_color,
+            render_pipeline,
         }
     }
 
@@ -126,8 +254,7 @@ impl State {
                 self.clear_color = wgpu::Color {
                     r: position.x as f64 / self.size.width as f64,
                     g: position.y as f64 / self.size.height as f64,
-                    b: (position.x * position.y) as f64 /
-                        (self.size.width * self.size.height) as f64,
+                    b: 1.0,
                     a: 1.0,
                 };
                 true
@@ -159,7 +286,7 @@ impl State {
         // so that way it gets released when we leave the block
         {
 
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
 
                 // label shows up in debuggers for easy identification
                 label: Some("Render Pass"),
@@ -189,6 +316,12 @@ impl State {
                 // describes the depth or stencil buffers
                 depth_stencil_attachment: None,
             });
+
+            // set the pipeline in the render pass to the one created in new()
+            render_pass.set_pipeline(&self.render_pipeline);
+
+            // we tell wgpu to draw something with 3 vertices and 1 instance
+            render_pass.draw(0..3, 0..1);
         }
 
         // submit will accept anything that implements IntoIter
