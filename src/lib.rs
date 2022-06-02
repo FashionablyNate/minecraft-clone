@@ -1,5 +1,3 @@
-use std::iter;
-
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -15,6 +13,7 @@ struct State {
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
+    clear_color: wgpu::Color,
 }
 
 impl State {
@@ -90,6 +89,13 @@ impl State {
         };
         surface.configure(&device, &config);
 
+        let clear_color = wgpu::Color {
+            r: 0.1,
+            g: 0.2,
+            b: 0.3,
+            a: 1.0,
+        };
+
         // load all the above values into the surface's fields
         Self {
             surface,
@@ -97,6 +103,7 @@ impl State {
             queue,
             config,
             size,
+            clear_color,
         }
     }
 
@@ -114,7 +121,19 @@ impl State {
     }
 
     fn input(&mut self, event: &WindowEvent) -> bool {
-        false
+        match event {
+            WindowEvent::CursorMoved { position, .. } => {
+                self.clear_color = wgpu::Color {
+                    r: position.x as f64 / self.size.width as f64,
+                    g: position.y as f64 / self.size.height as f64,
+                    b: (position.x * position.y) as f64 /
+                        (self.size.width * self.size.height) as f64,
+                    a: 1.0,
+                };
+                true
+            }
+            _ => false,
+        }
     }
 
     fn update(&mut self) {
@@ -136,22 +155,38 @@ impl State {
             label: Some("Render Encoder"),
         });
 
+        // the {} block creates a new scope where we can mutably borrow encoder,
+        // so that way it gets released when we leave the block
         {
+
             let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+
+                // label shows up in debuggers for easy identification
                 label: Some("Render Pass"),
+                
+                // attachments for render pass
                 color_attachments: &[wgpu::RenderPassColorAttachment {
+
+                    // A TextureView object which describes a texture and the
+                    // associated metadata
                     view: &view,
+
+                    // the view that will receive the resolved output if multisampling
+                    // is used. Multisampling is a process for reducing aliasing at the
+                    // edges of rasterized primitives
                     resolve_target: None,
+
+                    // A pair of load and store operations for an attachment aspect
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
-                        }),
+
+                        // Operation to perform to the output attachment at the start
+                        // of a renderpass
+                        load: wgpu::LoadOp::Clear(self.clear_color),
+                        // whether data will be written through this attachment
                         store: true,
                     },
                 }],
+                // describes the depth or stencil buffers
                 depth_stencil_attachment: None,
             });
         }
@@ -207,8 +242,14 @@ pub async fn run() {
 
     event_loop.run(move |event, _, control_flow| {
         match event {
+
+            // when a redraw is requested
             Event::RedrawRequested(window_id) if window_id == window.id() => {
+
+                // we call update on the state
                 state.update();
+
+                // then we call render, and error catch
                 match state.render() {
                     Ok(_) => {}
 
@@ -224,6 +265,7 @@ pub async fn run() {
             }
 
             Event::MainEventsCleared => {
+
                 // RedrawRequested will only trigger once, unless we manually
                 // request it
                 window.request_redraw();
