@@ -11,6 +11,8 @@ void display_glfw_error_message();
 // called upon window resize, changes the viewport size
 void framebuffer_size_callback(GLFWwindow * window, int width, int height);
 
+// function for taking in user input
+void processInput(GLFWwindow *window);
 
 int main() {
 
@@ -80,6 +82,15 @@ int main() {
     // checks if window should close at every iteration of the loop
     while(!glfwWindowShouldClose(window)) {
 
+        // check for user input
+        processInput(window);
+
+        // set background to a blue-ish color
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        
+        // clear the color buffer
+        glClear(GL_COLOR_BUFFER_BIT);
+
         // swaps the color buffer from the back buffer to the front buffer
         glfwSwapBuffers(window);
 
@@ -116,4 +127,16 @@ void framebuffer_size_callback(GLFWwindow * window, int width, int height) {
                0,       // set the y coord of the lower left corner
                width,   // set the x coord of the upper right corner
                height); // set the y coord of the upper right corner
+}
+
+/* -------------------------------------------------------------------------- */
+// called every frame to check for user input
+void processInput(GLFWwindow *window) {
+    
+    // if the escape key is pressed
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+
+        // set the window should close flag to true
+        glfwSetWindowShouldClose(window, true);
+    }
 }
