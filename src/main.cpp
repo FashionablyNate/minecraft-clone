@@ -76,6 +76,30 @@ int main() {
     // register a callback function for when the window is resized
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    /* Vertex Input */
+    /* ---------------------------------------------------------------------- */
+
+    // here we specify the normalized device coordinates of a triangle, we keep all
+    // the z coordinates on the same plane to generate a 2D image
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+         0.0f,  0.5f, 0.0f
+    };
+
+    // We create a vertex buffer object that allows us to pass large chunks of
+    // vertices to the GPU's memory all at once, we just hold onto the ID for it
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
+
+    // here we bind the vertex buffer object, now all calls we make on
+    // GL_ARRAY_BUFFER will configure the VBO until something else is bound
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    // here we copy our vertex array into the VBO, GL_STATIC_DRAW specifies that
+    // our data is immutable and will be used many times
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
     /* Render Loop */
     /* ---------------------------------------------------------------------- */
     
