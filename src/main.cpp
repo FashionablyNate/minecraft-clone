@@ -1,9 +1,31 @@
+#include <cstddef>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+// vertex shader source code
+const char * vertexShaderSource = "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "}\0";
+
+// fragment shader source code
+const char * fragmentShaderSource = "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "void main() {\n"
+    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);"
+    "}\0";
+
+
+// starting window width and height
 unsigned int window_width = 800;
 unsigned int window_height = 600;
+
+// error checking for shader compilation
+int  success;
+char infoLog[512];
 
 // prints description of last thrown error
 void display_glfw_error_message();
@@ -100,6 +122,110 @@ int main() {
     // our data is immutable and will be used many times
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    /* Vertex Shader */
+    /* ---------------------------------------------------------------------- */
+
+    // We create a shader object referenced by an ID that we'll store in vertexShader
+    unsigned int vertexShader;
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+
+    // here we assign the source code to our shader object
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    // then we compile the shader
+    glCompileShader(vertexShader);
+
+    // here we query opengl for the status of our shader compilation
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        
+        // if the compilation failed, we get an error log, and print it
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        std::cout
+            << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+            << infoLog
+            << std::endl;
+    }
+
+    /* Fragment Shader */
+    /* ---------------------------------------------------------------------- */
+
+    // We create a shader object referenced by an ID that we'll store in fragmentShader
+    unsigned int fragmentShader;
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    // here we assign the source code to our shader object
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    // then we compile the shader
+    glCompileShader(fragmentShader);
+
+    // here we query opengl for the status of our shader compilation
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        
+        // if the compilation failed, we get an error log, and print it
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        std::cout
+            << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+            << infoLog
+            << std::endl;
+    }
+
+    /* Shader Program */
+    /* ---------------------------------------------------------------------- */
+
+    // here we create a program object referenced by an ID that we store in shaderProgram
+    unsigned int shaderProgram;
+    shaderProgram = glCreateProgram();
+
+    // here we attach the fragment and vertex shaders created above
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+
+    // now we link the program
+    glLinkProgram(shaderProgram);
+
+    // here we query opengl for the status of our shader compilation
+    glGetProgramiv(shaderProgram, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        
+        // if the compilation failed, we get an error log, and print it
+        glGetShaderInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cout
+            << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+            << infoLog
+            << std::endl;
+    }
+
+    // now we tell opengl we want to the use the shaders of shaderProgram
+    glUseProgram(shaderProgram);
+
+    // since we've already linked the shaders, we don't need their objects
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    /* Vertex Array Object */
+    /* ---------------------------------------------------------------------- */
+
+    // here we created a Vertex Array Object referenced by the ID stored in VAO
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+
+    // now we bind the VAO
+    glBindVertexArray(VAO);
+
+    // here we tell openGL how to interpret the data we give it
+    glVertexAttribPointer(
+        0,                  // specify which vertex attribute (location 0)
+        3,                  // size of vertex attribute (vec3)
+        GL_FLOAT,           // type of data (vec* uses floats)
+        GL_FALSE,           // whether we want the data normalized (floating point conversion)
+        3 * sizeof(float),  // the stride (how long is one vertex in memory)
+        (void *)0           // the offset (where to start reading)
+    );
+
+    // now we enable the vertex attribute at location 0
+    glEnableVertexAttribArray(0);
+
     /* Render Loop */
     /* ---------------------------------------------------------------------- */
     
@@ -115,6 +241,10 @@ int main() {
         // clear the color buffer
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
         // swaps the color buffer from the back buffer to the front buffer
         glfwSwapBuffers(window);
 
@@ -126,6 +256,8 @@ int main() {
     glfwTerminate();
     return 0;
 }
+/* END OF MAIN */
+
 
 /* -------------------------------------------------------------------------- */
 // function for printing out the last glfw error message
